@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../supabaseClient/supabaseClient';
 
 export default function NovaTarefa() {
   const [titulo, setTitulo] = useState('');

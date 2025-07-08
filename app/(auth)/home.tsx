@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
-import { supabase } from '../../supabaseClient';
+import { useFocusEffect } from '@react-navigation/native';
+import { supabase } from '../../supabaseClient/supabaseClient';
 
-import Item from '../../components/Itens';
 import BtnAdd from '../../components/AddButton';
+import Item from '../../components/Itens';
 import LoggedUser from '../../components/LoggedUser';
 
 interface Tarefa {
@@ -18,6 +19,7 @@ const Page = () => {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const router = useRouter();
 
+  // Busca dados do usuário
   useEffect(() => {
     const getUserData = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -34,33 +36,65 @@ const Page = () => {
     getUserData();
   }, []);
 
+  // Função para buscar tarefas
+  const fetchTarefas = async () => {
+    const { data, error } = await supabase
+      .from('tarefas')
+      .select('id, titulo')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }); // 👈 Usa o nome certo da coluna
+
+    if (error) {
+      console.error('Erro ao buscar tarefas:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as tarefas');
+      return;
+    }
+
+    setTarefas(data || []);
+  };
+
+  // Realtime: escuta mudanças na tabela
   useEffect(() => {
     if (!userId) return;
 
-    const fetchTarefas = async () => {
-      const { data, error } = await supabase
-        .from('tarefas')
-        .select('id, titulo')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+    fetchTarefas(); // Carrega inicialmente
 
-      if (error) {
-        console.error('Erro ao buscar tarefas:', error);
-        Alert.alert('Erro', 'Não foi possível carregar as tarefas');
-        return;
-      }
+    const canal = supabase
+      .channel('tarefas_realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tarefas',
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          fetchTarefas();
+        }
+      )
+      .subscribe();
 
-      setTarefas(data || []);
+    return () => {
+      supabase.removeChannel(canal);
     };
-
-    fetchTarefas();
   }, [userId]);
 
+  // Atualiza quando a tela volta ao foco (volta da nova/editar tarefa)
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) {
+        fetchTarefas();
+      }
+    }, [userId])
+  );
+
+  // Deletar tarefa e atualizar lista
   const handleDeleteTask = async (id: string) => {
     try {
       const { error } = await supabase.from('tarefas').delete().eq('id', id);
       if (error) throw error;
-      setTarefas(prev => prev.filter(t => t.id !== id));
+      await fetchTarefas(); // Atualiza logo após deletar
     } catch (error) {
       console.error('Erro ao deletar tarefa:', error);
       Alert.alert('Erro', 'Não foi possível excluir a tarefa');
@@ -82,7 +116,9 @@ const Page = () => {
       <Item
         data={tarefas}
         onDelete={handleDeleteTask}
-        onEdit={(id, titulo) => router.push({ pathname: '(auth)/editar-tarefa', params: { id, titulo } })}
+        onEdit={(id, titulo) =>
+          router.push({ pathname: '(auth)/editar-tarefas', params: { id, titulo } })
+        }
       />
 
       <BtnAdd onPress={() => router.push('/(auth)/nova-tarefa')} />

@@ -1,6 +1,6 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../supabaseClient/supabaseClient.js';
 import { View, ActivityIndicator } from 'react-native';
 
 export default function RootLayout() {

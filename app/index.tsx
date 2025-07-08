@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, TextInput, Button, ActivityIndicator } from 'react-native';
-import { supabase } from '../supabaseClient.js';
+import { ActivityIndicator, Button, KeyboardAvoidingView, StyleSheet, TextInput, View } from 'react-native';
+import { supabase } from '../supabaseClient/supabaseClient.js';
 
  
 export default function Index() {

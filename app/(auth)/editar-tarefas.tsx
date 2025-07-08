@@ -1,7 +1,7 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
-import { supabase } from '../../supabaseClient';
+import { supabase } from '../../supabaseClient/supabaseClient';
 
 export default function EditarTarefa() {
   const { id, titulo: tituloParam } = useLocalSearchParams<{ id: string; titulo: string }>();
